@@ -1,0 +1,306 @@
+C51 COMPILER V9.56.0.0   MAIN                                                              06/15/2022 15:41:52 PAGE 1   
+
+
+C51 COMPILER V9.56.0.0, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: D:\Keil 5\c51\keil(相关软件)\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRI
+                    -NT(.\Listings\main.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          #include "STC15F2K60S2.h"
+   2          
+   3          #define u8 unsigned char
+   4          #define u16 unsigned int
+   5          
+   6          u8 dspbuf[8] = {10,10,10,10,10,10,10,10};  
+   7          u8 code tab[] = {0xc0,0xf9,0xa4,0xb0,0x99,0x92,0x82,0xf8,0x80,0x90,0xff,0x40,0x79,0x24,0x30,0x19,0x12,0x02
+             -,0x78,0x00,0x10};
+   8                         // 0     1    2    3    4    5    6    7    8    9    10   11   12   13   14   15   16  17  
+             - 18   19   20       
+   9          u8 dspcom = 0;
+  10          bit key_flag = 0;
+  11            
+  12          void door(u8 choose,input)
+  13          {
+  14   1        P2 = (P2 & 0x1f) | choose;
+  15   1        P0 = input;
+  16   1        P2 &= 0x1f; 
+  17   1      }
+  18          
+  19          void clo_num()
+  20          {
+  21   1        dspbuf[0] = 10;
+  22   1        dspbuf[1] = 10;
+  23   1        dspbuf[2] = 10;
+  24   1        dspbuf[3] = 10;
+  25   1        dspbuf[4] = 10;
+  26   1        dspbuf[5] = 10;
+  27   1        dspbuf[6] = 10;
+  28   1        dspbuf[7] = 10;
+  29   1      }
+  30          
+  31          void all_init()
+  32          {
+  33   1        door(0x80,0xff);
+  34   1        door(0xa0,0xaf);
+  35   1        clo_num();
+  36   1      }
+  37          
+  38          void Timer1Init(void)   //2毫秒@12.000MHz
+  39          {
+  40   1        AUXR |= 0x40;   //定时器时钟1T模式
+  41   1        TMOD &= 0x0F;   //设置定时器模式
+  42   1        TL1 = 0x40;   //设置定时初值
+  43   1        TH1 = 0xA2;   //设置定时初值
+  44   1        TF1 = 0;    //清除TF1标志
+  45   1        TR1 = 1;    //定时器1开始计时
+  46   1        
+  47   1        ET1 = 1;
+  48   1        EA = 1;
+  49   1      }
+  50          
+  51          void display()
+  52          {       
+C51 COMPILER V9.56.0.0   MAIN                                                              06/15/2022 15:41:52 PAGE 2   
+
+  53   1        door(0xe0,0xff);
+  54   1      
+  55   1        door(0xc0,0x01<<dspcom);
+  56   1        door(0xe0,tab[dspbuf[dspcom++]]);
+  57   1        
+  58   1        if(dspcom >= 8)
+  59   1          dspcom = 0;
+  60   1      }
+  61          
+  62          //u8 keypress = 0,keyread = 0,keyvalue = 0xff,keypress_long = 0,keyread_long = 0,keyvalue_long = 0xff;
+  63          //u8 Read_key()
+  64          //{
+  65          //    u8 key_m,cal;
+  66          //    
+  67          //    P3 = 0xf0;P42 = 1;P44 = 1;
+  68          //    P36 = P42;P37 = P44;
+  69          //    key_m = P3&0xf0;
+  70          
+  71          //    if(key_m != 0xf0) 
+  72          //    {
+  73          //      keypress++;
+  74          //      keypress_long++;
+  75          //    }
+  76          //    else
+  77          //        keypress = 0; 
+  78          //    
+  79          //    if(keypress == 3)
+  80          //    {
+  81          //      keypress = 0;
+  82          //      keyread = 1;
+  83          //      switch(key_m)
+  84          //        {
+  85          //            case 0x70:cal = 0;break;                
+  86          //            case 0xb0:cal = 1;break;    
+  87          //            case 0xd0:cal = 2;break;    
+  88          //            case 0xe0:cal = 3;break;
+  89          //        }
+  90          //        
+  91          //      P3 = 0x0f;P42 = 0;P44 = 0;
+  92          //      key_m = P3&0x0f;
+  93          //        
+  94          //      switch(key_m)
+  95          //      {
+  96          //          case 0x0e:keyvalue = (4*cal+7);
+  97          //                    if(keypress_long >= 50)
+  98          //                    {
+  99          //                      keyread_long = 1;
+ 100          //                      keypress_long = 0;
+ 101          //                      keyvalue_long = keyvalue+20;
+ 102          //                    }
+ 103          //                    break;
+ 104          //          case 0x0d:keyvalue = (4*cal+6);
+ 105          //                    if(keypress_long >= 50)
+ 106          //                    {
+ 107          //                      keyread_long = 1;
+ 108          //                      keypress_long = 0;
+ 109          //                      keyvalue_long = keyvalue+20;
+ 110          //                    }
+ 111          //                    break;
+ 112          //          case 0x0b:keyvalue = (4*cal+5);
+ 113          //                    if(keypress_long >= 50)
+ 114          //                    {
+C51 COMPILER V9.56.0.0   MAIN                                                              06/15/2022 15:41:52 PAGE 3   
+
+ 115          //                      keyread_long = 1;
+ 116          //                      keypress_long = 0;
+ 117          //                      keyvalue_long = keyvalue+20;
+ 118          //                    }
+ 119          //                    break;
+ 120          //          case 0x07:keyvalue = (4*cal+4);
+ 121          //                    if(keypress_long >= 50)
+ 122          //                    {
+ 123          //                      keyread_long = 1;
+ 124          //                      keypress_long = 0;
+ 125          //                      keyvalue_long = keyvalue+20;
+ 126          //                    }
+ 127          //                    break;
+ 128          //      }
+ 129          //    }
+ 130          //    
+ 131          //    P3 = 0x0f;P42 = 0;P44 = 0;
+ 132          //    key_m = P3&0x0f;
+ 133          //  
+ 134          //    if((keyread) && (key_m == 0x0f))
+ 135          //    {
+ 136          //      keyread = 0;
+ 137          //      if(keyread_long)
+ 138          //      {
+ 139          //        keyread_long = 0;
+ 140          //        return keyvalue_long;
+ 141          //      }
+ 142          //      else
+ 143          //      {
+ 144          //        keypress_long = 0;
+ 145          //        return keyvalue;
+ 146          //      }
+ 147          //    }
+ 148          //    return 0xff;
+ 149          //}
+ 150          
+ 151          u8 keypress = 0,keyvalue = 0xff,keyread = 0,key_state = 0,key_200ms = 0;
+ 152          u8 Read_key()
+ 153          {
+ 154   1        u8 key_m,cal;
+ 155   1        
+ 156   1        P3 = 0xf0;P42 = 1;P44 = 1;
+ 157   1        P36 = P42;P37 = P44;
+ 158   1        key_m = P3&0xf0;
+ 159   1      
+ 160   1        switch(key_state)
+ 161   1        {
+ 162   2          case 0:
+ 163   2            if(key_m != 0xf0)     //需要放状态1里，防止松手时keypress清零了，导致又返回了短按键
+ 164   2              keypress++;
+ 165   2             else
+ 166   2              keypress = 0; 
+ 167   2             
+ 168   2            if(keypress == 3)
+ 169   2            {
+ 170   3              keypress = 0;
+ 171   3              keyread = 1;
+ 172   3              switch(key_m)
+ 173   3              {
+ 174   4                case 0x70:cal = 0;break;                
+ 175   4                case 0xb0:cal = 1;break;    
+ 176   4                case 0xd0:cal = 2;break;    
+C51 COMPILER V9.56.0.0   MAIN                                                              06/15/2022 15:41:52 PAGE 4   
+
+ 177   4                case 0xe0:cal = 3;break;
+ 178   4              }
+ 179   3                
+ 180   3              P3 = 0x0f;P42 = 0;P44 = 0;
+ 181   3              key_m = P3&0x0f;
+ 182   3              
+ 183   3              switch(key_m)
+ 184   3              {
+ 185   4                case 0x0e:keyvalue = (4*cal+7);key_state = 1;break;                
+ 186   4                case 0x0d:keyvalue = (4*cal+6);key_state = 1;break;    
+ 187   4                case 0x0b:keyvalue = (4*cal+5);key_state = 1;break;    
+ 188   4                case 0x07:keyvalue = (4*cal+4);key_state = 1;break;
+ 189   4              }
+ 190   3            }
+ 191   2            break;
+ 192   2          case 1:
+ 193   2            //松手检测
+ 194   2            P3 = 0x0f;P42 = 0;P44 = 0;
+ 195   2            key_m = P3&0x0f;
+ 196   2            if(key_m == 0x0f)   //松手则进入
+ 197   2            {
+ 198   3              key_state = 0;
+ 199   3              if(keypress <= 25)  //时间短则返回短按键
+ 200   3                return keyvalue;
+ 201   3            }
+ 202   2            
+ 203   2            //未松手则累加
+ 204   2            (keypress <= 25)?keypress++:key_200ms++;    //相当于<=25为短按键，>=35为长按键
+ 205   2            
+ 206   2            if(key_200ms >= 10)
+ 207   2            {
+ 208   3              key_200ms = 0;
+ 209   3              return keyvalue+20;
+ 210   3            }
+ 211   2          break;
+ 212   2        }
+ 213   1        return 0xff;
+ 214   1      }
+ 215          
+ 216          void main()   //```````````````````````````````````````````````````````````````````主函数
+ 217          { 
+ 218   1        u8 key_re;
+ 219   1        u8 dat = 50;
+ 220   1        
+ 221   1        Timer1Init();
+ 222   1        all_init();
+ 223   1      
+ 224   1        while(1)
+ 225   1        {
+ 226   2          if(key_flag)      
+ 227   2          {
+ 228   3            key_flag = 0;
+ 229   3            key_re = Read_key();
+ 230   3            
+ 231   3            if(key_re != 0xff)
+ 232   3            {
+ 233   4              switch(key_re)
+ 234   4              {
+ 235   5                //短按键
+ 236   5                case 15:dspbuf[0] = 8;break;
+ 237   5                case 14:door(0x80,0x00);break;
+ 238   5                case 13:dspbuf[6] = 8;break;
+C51 COMPILER V9.56.0.0   MAIN                                                              06/15/2022 15:41:52 PAGE 5   
+
+ 239   5                case 12:dspbuf[6] = 10;break;
+ 240   5                //长按键
+ 241   5                case 35:dspbuf[1] = 8;break;
+ 242   5                case 34:door(0x80,0xff);break;
+ 243   5                case 33:dspbuf[7] = 8;break;
+ 244   5                case 32:dspbuf[7] = 10;break;
+ 245   5                
+ 246   5                case 9:dat++;break;
+ 247   5                case 8:dat--;break;
+ 248   5                case 29:dat++;break;
+ 249   5                case 28:dat--;break;
+ 250   5              }
+ 251   4            }
+ 252   3          }
+ 253   2          
+ 254   2          dspbuf[4] = dat/10;
+ 255   2          dspbuf[5] = dat%10;
+ 256   2        }
+ 257   1      }
+ 258          
+ 259          void timer0() interrupt 3
+ 260          {
+ 261   1        static u8  t_20ms = 0;
+ 262   1        
+ 263   1        display();
+ 264   1      
+ 265   1        t_20ms++;
+ 266   1      
+ 267   1        if(t_20ms >= 10)
+ 268   1        {
+ 269   2          t_20ms = 0;
+ 270   2          key_flag = 1;
+ 271   2        }
+ 272   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    566    ----
+   CONSTANT SIZE    =     21    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     15       2
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      1    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

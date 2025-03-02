@@ -1,0 +1,5 @@
+".\Objects\STARTUP.obj",
+".\Objects\main.obj",
+".\Objects\iic.obj" 
+TO ".\Objects\text4" 
+PRINT(".\Listings\text4.m51") RAMSIZE(256) 

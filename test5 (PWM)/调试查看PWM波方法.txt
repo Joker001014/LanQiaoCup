@@ -1,0 +1,7 @@
+1、点击调试按钮
+2、依次点击View-Analysis-Logic Analyzer
+3、点击Setup按钮
+4、点击New（insert）
+5、输入对应引脚，如：P3.4
+6、选择Display Type为：Bit类型
+7、点击RUN运行仿真，即可看到波形

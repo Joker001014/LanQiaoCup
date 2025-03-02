@@ -1,0 +1,180 @@
+C51 COMPILER V9.56.0.0   MAIN                                                              06/15/2022 15:23:36 PAGE 1   
+
+
+C51 COMPILER V9.56.0.0, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: D:\Keil 5\c51\keil(相关软件)\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRI
+                    -NT(.\Listings\main.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          #include "STC15F2K60S2.h" 
+   2          
+   3          #define u8 unsigned char
+   4          #define u16 unsigned int
+   5          
+   6          u8 dspbuf[8] = {10,10,10,10,10,10,10,10};  
+   7          u8 code tab[] = {0xc0,0xf9,0xa4,0xb0,0x99,0x92,0x82,0xf8,0x80,0x90,0xff,0x40,0x79,0x24,0x30,0x19,0x12,0x02
+             -,0x78,0x00,0x10};
+   8                         // 0     1    2    3    4    5    6    7    8    9    10   11   12   13   14   15   16  17  
+             - 18   19   20       
+   9          u8 dspcom = 0;
+  10          bit key_flag = 0;
+  11            
+  12          //////////////////////////////////////////////////////////////////////////////////////////
+  13          sbit TX = P1^0;    // 发射引脚
+  14          sbit RX = P1^1;    // 接收引脚
+  15          //////////////////////////////////////////////////////////////////////////////////////////
+  16            
+  17          void door(u8 choose,input)
+  18          {
+  19   1        P2 = (P2 & 0x1f) | choose;
+  20   1        P0 = input;
+  21   1        P2 &= 0x1f; 
+  22   1      }
+  23          
+  24          void clo_num()
+  25          {
+  26   1        dspbuf[0] = 10;
+  27   1        dspbuf[1] = 10;
+  28   1        dspbuf[2] = 10;
+  29   1        dspbuf[3] = 10;
+  30   1        dspbuf[4] = 10;
+  31   1        dspbuf[5] = 10;
+  32   1        dspbuf[6] = 10;
+  33   1        dspbuf[7] = 10;
+  34   1      }
+  35          
+  36          void all_init()
+  37          {
+  38   1        door(0x80,0xff);
+  39   1        door(0xa0,0xaf);
+  40   1        clo_num();
+  41   1      }
+  42          
+  43          void display()
+  44          {       
+  45   1        door(0xe0,0xff);
+  46   1      
+  47   1        door(0xc0,0x01<<dspcom);
+  48   1        door(0xe0,tab[dspbuf[dspcom++]]);
+  49   1        
+  50   1        if(dspcom >= 8)
+  51   1          dspcom = 0;
+  52   1      }
+C51 COMPILER V9.56.0.0   MAIN                                                              06/15/2022 15:23:36 PAGE 2   
+
+  53          
+  54          void Timer1Init(void)   //2毫秒@12.000MHz
+  55          {
+  56   1        AUXR |= 0x40;   //定时器时钟1T模式
+  57   1        TMOD &= 0x0F;   //设置定时器模式
+  58   1        TL1 = 0x40;   //设置定时初值
+  59   1        TH1 = 0xA2;   //设置定时初值
+  60   1        TF1 = 0;    //清除TF1标志
+  61   1        TR1 = 1;    //定时器1开始计时
+  62   1        
+  63   1        ET1 = 1;
+  64   1        EA = 1;
+  65   1      }
+  66          
+  67          //定时器0、12T时钟
+  68          void Timer0Init(void) // 12us@12.000MHz    频率：40KHZ,1/40000 = 25us，其中高电平12.5us，低电平12.5us，约1
+             -2us
+  69          { 
+  70   1        AUXR &= 0x7F;    // 定时器时钟12T模式 △
+  71   1        TMOD &= 0xF0;    // 设置定时器模式
+  72   1        TL0 = 0xF4;      // 设置定时初值
+  73   1        TH0 = 0xFF;      // 设置定时初值
+  74   1        TF0 = 0;         // 清除TF0溢出标志位
+  75   1        TR0 = 0;         // 关闭定时器0  △
+  76   1      } 
+  77          
+  78          u8 Wave_recv(void) 
+  79          {
+  80   1         u8 distance,count = 10; 
+  81   1         
+  82   1         TX = 0;           // 发射引脚置0
+  83   1         TL0 = 0xF4;       // 设置定时初值
+  84   1         TH0 = 0xFF;       // 设置定时初值
+  85   1         TR0 = 1;          // 打开定时器 0
+  86   1        
+  87   1         // TX 引脚发送 40kHz 方波信号驱动超声波发送探头
+  88   1         while(count--) 
+  89   1         {
+  90   2           while(!TF0);    // TF0溢出标志位为0是卡死，直至TF0满12us溢出，跳出循环
+  91   2           TX ^= 1;        // 发送信号翻转
+  92   2           TF0 = 0;        // 溢出标志位清零
+  93   2         }
+  94   1         
+  95   1         TR0 = 0;          // 关闭定时器0，将其再次赋初值
+  96   1         TL0 = 0;          // 设置定时初值
+  97   1         TH0 = 0;          // 设置定时初值
+  98   1         TR0 = 1;          // 打开定时器0
+  99   1         
+ 100   1         while(RX && !TF0);  // 等待收到脉冲，收到脉冲时RX将产生低电平，将跳出循环。并开始计时，1us计数加一
+ 101   1         TR0 = 0;            // 关闭定时器0，此时TL0、TH0被记录下来
+ 102   1         
+ 103   1         if(TF0)           // 测距大于1m时，发生溢出
+ 104   1         { 
+ 105   2           TF0 = 0;        // 标志位清零
+ 106   2           distance = 255;   // 即0xff，表示超出测量范围
+ 107   2         } 
+ 108   1         else              // 计算距离
+ 109   1          distance = ((TH0<<8)+TL0)*0.017;   // t*0.000001(1us)*340/2(往返)*100(换算成厘米) = t * 0.017
+ 110   1      
+ 111   1         return distance; 
+ 112   1      }
+ 113          
+C51 COMPILER V9.56.0.0   MAIN                                                              06/15/2022 15:23:36 PAGE 3   
+
+ 114          void main()
+ 115          {
+ 116   1        u8 distance;
+ 117   1        
+ 118   1        all_init();
+ 119   1        Timer1Init();
+ 120   1        Timer0Init();
+ 121   1        
+ 122   1        while(1)
+ 123   1        {
+ 124   2          if(key_flag)
+ 125   2          {
+ 126   3            key_flag = 0;
+ 127   3            distance = Wave_recv();
+ 128   3            
+ 129   3            dspbuf[5] = distance/100;
+ 130   3            dspbuf[6] = distance%100/10;
+ 131   3            dspbuf[7] = distance%10;
+ 132   3          }
+ 133   2        }
+ 134   1      }
+ 135          
+ 136          void timer1() interrupt 3
+ 137          {
+ 138   1        static u8 t_20ms = 0;
+ 139   1        
+ 140   1        display();
+ 141   1        
+ 142   1        t_20ms++;
+ 143   1        
+ 144   1        if(t_20ms >= 10)
+ 145   1        {
+ 146   2          t_20ms = 0;
+ 147   2          key_flag = 1;
+ 148   2        }
+ 149   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    349    ----
+   CONSTANT SIZE    =     21    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     10    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      1    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

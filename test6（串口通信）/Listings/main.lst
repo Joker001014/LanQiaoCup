@@ -1,0 +1,108 @@
+C51 COMPILER V9.56.0.0   MAIN                                                              06/15/2022 13:40:26 PAGE 1   
+
+
+C51 COMPILER V9.56.0.0, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: D:\Keil 5\c51\keil(相关软件)\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRI
+                    -NT(.\Listings\main.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          #include "STC15F2K60S2.h"
+   2          #include "stdio.h"
+   3          
+   4          #define u8 unsigned char
+   5          #define u16 unsigned int
+   6          u8 Uart_rec[10] = "",Uart_out[15] = "",Uart_count = 0;
+   7          u8 dat_1 = 20,dat_3 = 35,dat_4 = 30;
+   8          float dat_2 = 24.32;
+   9            
+  10          //串口1、8位自动重装
+  11          void UartInit(void)   //4800bps@12.000MHz
+  12          {
+  13   1        PCON &= 0x7F;   //波特率不倍速
+  14   1        SCON = 0x50;    //8位数据,可变波特率
+  15   1        AUXR |= 0x40;   //定时器1时钟为Fosc,即1T
+  16   1        AUXR &= 0xFE;   //串口1选择定时器1为波特率发生器
+  17   1        TMOD &= 0x0F;   //清除定时器1模式位
+  18   1        TMOD |= 0x20;   //设定定时器1为8位自动重装方式
+  19   1        TL1 = 0xB2;   //设定定时初值
+  20   1        TH1 = 0xB2;   //设定定时器重装值
+  21   1        ET1 = 0;    //禁止定时器1中断
+  22   1        TR1 = 1;    //启动定时器1
+  23   1        
+  24   1        ES = 1;
+  25   1        EA = 1;
+  26   1      }
+  27          
+  28          void Uart_send(u8 *str)
+  29          {
+  30   1        u8 *s;
+  31   1        
+  32   1        s = str;
+  33   1        while(*s != '\0')
+  34   1        {
+  35   2          SBUF = *s;
+  36   2          while(!TI);
+  37   2          TI = 0;
+  38   2          s++;
+  39   2        }
+  40   1      }
+  41          
+  42          void Uart_pro()
+  43          {
+  44   1        if(Uart_count > 0)
+  45   1        {
+  46   2          if(Uart_rec[Uart_count-1] == '\n')
+  47   2          {
+  48   3            //为发送数组赋值
+  49   3             if((Uart_rec[0]=='S') && (Uart_rec[1]=='T')) 
+  50   3               sprintf(Uart_out, "$%02u,%04.2f\r\n",(unsigned int)dat_1,(float)dat_2);    //注意△sprintf传送的是int
+             -型数据，要用unsigned int
+  51   3             else if((Uart_rec[0]=='P') && (Uart_rec[1]=='A') && (Uart_rec[2]=='R') && (Uart_rec[3]=='A')) 
+  52   3               sprintf(Uart_out, "#%02u,%02u\r\n",(unsigned int)dat_3, (unsigned int)dat_4); 
+  53   3             else
+C51 COMPILER V9.56.0.0   MAIN                                                              06/15/2022 13:40:26 PAGE 2   
+
+  54   3               sprintf(Uart_out, "ERROR\r\n");        //△同时有"\r\n"才能换行
+  55   3             //发送数据
+  56   3             Uart_send(Uart_out); 
+  57   3             Uart_count = 0;
+  58   3          }
+  59   2        }
+  60   1      }
+  61          
+  62          void main()
+  63          {
+  64   1        UartInit();
+  65   1        
+  66   1        while(1)
+  67   1        {
+  68   2          Uart_pro();
+  69   2        }
+  70   1      }
+  71          
+  72          void Uart() interrupt 4
+  73          {
+  74   1        if(RI)
+  75   1        {
+  76   2          RI = 0;
+  77   2          Uart_rec[Uart_count++] = SBUF;       //串口接收
+  78   2        }
+  79   1      }
+  80          
+  81          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    234    ----
+   CONSTANT SIZE    =     36    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     33    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
